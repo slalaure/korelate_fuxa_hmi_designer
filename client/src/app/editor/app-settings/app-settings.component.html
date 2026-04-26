@@ -89,6 +89,16 @@
                                     {{ 'dlg.app-settings-swagger-info' | translate }}
                                 </div>
                             </div>
+                            <div class="my-form-field block mt15 system-input">
+                                <span>{{'dlg.app-settings-korelate' | translate}}</span>
+                                <mat-select [(value)]="settings.korelateEnabled">
+                                    <mat-option [value]="true">{{'general.enabled' | translate}}</mat-option>
+                                    <mat-option [value]="false">{{'general.disabled' | translate}}</mat-option>
+                                </mat-select>
+                                <div *ngIf="settings.korelateEnabled !== originalKorelateEnabled" class="node-red-info">
+                                    {{ 'dlg.app-settings-korelate-info' | translate }}
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>

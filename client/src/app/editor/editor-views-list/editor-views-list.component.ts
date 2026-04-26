@@ -4,6 +4,7 @@ import { TranslateService } from '@ngx-translate/core';
 import { ConfirmDialogComponent, ConfirmDialogData } from '../../gui-helpers/confirm-dialog/confirm-dialog.component';
 import { MatDialog as MatDialog } from '@angular/material/dialog';
 import { ProjectService } from '../../_services/project.service';
+import { SettingsService } from '../../_services/settings.service';
 import { ViewPropertyComponent, ViewPropertyType } from '../view-property/view-property.component';
 import * as FileSaver from 'file-saver';
 import { EditNameComponent, EditNameData } from '../../gui-helpers/edit-name/edit-name.component';
@@ -32,7 +33,12 @@ export class EditorViewsListComponent {
     constructor(private projectService: ProjectService,
         private translateService: TranslateService,
         public dialog: MatDialog,
+        private settingsService: SettingsService
     ) { }
+
+    get isKorelateEnabled(): boolean {
+        return this.settingsService.getSettings()?.korelateEnabled || false;
+    }
 
     onSelectView(view: View, force = true) {
         if (!force && this.currentView?.id === view?.id) {
@@ -139,6 +145,39 @@ export class EditorViewsListComponent {
         let content = JSON.stringify(view);
         let blob = new Blob([content], { type: 'text/plain;charset=utf-8' });
         FileSaver.saveAs(blob, filename);
+    }
+
+    onExportKorelate(view: View) {
+        if (!this.isKorelateEnabled) return;
+
+        let htmlFilename = `${view.name}.html`;
+        let jsFilename = `${view.name}.js`;
+
+        // 1. Export HTML/SVG content
+        let htmlContent = view.svgcontent || '';
+        let htmlBlob = new Blob([htmlContent], { type: 'text/html;charset=utf-8' });
+        FileSaver.saveAs(htmlBlob, htmlFilename);
+
+        // 2. Export base JS logic file
+        let jsContent = `window.registerHmiBindings({
+    initialize: (hmiRoot, context) => {
+        // Initialization logic (DOM events, timers, etc.)
+    },
+    update: (sourceId, topic, payload, hmiRoot, context) => {
+        try {
+            const msg = (typeof payload === 'string') ? JSON.parse(payload) : payload;
+            // Update logic based on payload
+        } catch (err) {
+            // Silently ignore non-JSON payloads if logic requires JSON
+        }
+    },
+    reset: (hmiRoot) => {
+        // Reset logic when view is unloaded
+    }
+});
+`;
+        let jsBlob = new Blob([jsContent], { type: 'application/javascript;charset=utf-8' });
+        FileSaver.saveAs(jsBlob, jsFilename);
     }
 
     onCleanView(view: View) {

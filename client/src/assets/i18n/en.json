@@ -548,6 +548,7 @@
     "editor.view-property": "Property",
     "editor.view-clone": "Clone",
     "editor.view-export": "Export",
+    "editor.view-export-korelate": "Export to Korelate",
     "editor.view-clean": "Clean",
     "editor.view-add": "Add View",
     "editor.image-add": "Add image",

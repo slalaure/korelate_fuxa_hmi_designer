@@ -37,6 +37,8 @@ export class AppSettings {
     nodeRedAuthMode = 'secure';
     /** Enable Swagger */
     swaggerEnabled = false;
+    /** Enable Korelate */
+    korelateEnabled = false;
 }
 
 export class SmtpSettings {

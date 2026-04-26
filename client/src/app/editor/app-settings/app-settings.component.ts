@@ -48,6 +48,7 @@ export class AppSettingsComponent implements OnInit {
     settings = new AppSettings();
     originalNodeRedEnabled = false;
     originalSwaggerEnabled = false;
+    originalKorelateEnabled = false;
     originalSecureEnabled = false;
     authentication = '';
     authenticationTooltip = '';
@@ -115,6 +116,11 @@ export class AppSettingsComponent implements OnInit {
             this.settings.swaggerEnabled = false;
         }
         this.originalSwaggerEnabled = this.settings.swaggerEnabled;
+
+        if (Utils.isNullOrUndefined(this.settings.korelateEnabled)) {
+            this.settings.korelateEnabled = false;
+        }
+        this.originalKorelateEnabled = this.settings.korelateEnabled;
     }
 
     onNoClick() {
