@@ -5,6 +5,7 @@ import { Observable, map, startWith } from 'rxjs';
 import { ProjectService } from '../../../_services/project.service';
 import { Device, DevicesUtils, PlaceholderDevice, Tag } from '../../../_models/device';
 import { DeviceTagSelectionComponent, DeviceTagSelectionData } from '../../../device/device-tag-selection/device-tag-selection.component';
+import { UnsTagSelectionComponent } from '../../../editor/uns-tag-selection/uns-tag-selection.component';
 import { Utils } from '../../../_helpers/utils';
 
 export const _filter = (opt: DeviceTagOption[], value: string): DeviceTagOption[] => {
@@ -125,7 +126,7 @@ export class FlexDeviceTagComponent implements OnInit, OnChanges {
     }
 
     onBindTag() {
-        let dialogRef = this.dialog.open(DeviceTagSelectionComponent, {
+        let dialogRef = this.dialog.open(UnsTagSelectionComponent, {
             disableClose: true,
             position: { top: '60px' },
             data: <DeviceTagSelectionData>{

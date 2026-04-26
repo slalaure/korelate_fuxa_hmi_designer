@@ -10,10 +10,11 @@ import { EndPointApi } from '../_helpers/endpointapi';
 import { Utils } from '../_helpers/utils';
 import { ToastrService } from 'ngx-toastr';
 import { TranslateService } from '@ngx-translate/core';
-import { BehaviorSubject, firstValueFrom } from 'rxjs';
+import { BehaviorSubject, firstValueFrom, Subscription } from 'rxjs';
 import { AuthService, UserProfile } from './auth.service';
 import { DeviceAdapterService } from '../device-adapter/device-adapter.service';
 import { HttpClient } from '@angular/common/http';
+import { I3xService } from './i3x.service';
 
 @Injectable()
 export class HmiService {
@@ -53,6 +54,10 @@ export class HmiService {
     private homeTagsSubscription = [];
     private viewsTagsSubscription = [];
 
+    // I3X Integration
+    private i3xStreamSub: Subscription = null;
+    private currentI3xTags: string[] = [];
+
     getGaugeMapped: (gaugeName: string) => void; // function binded in GaugeManager
 
     constructor(public projectService: ProjectService,
@@ -60,7 +65,8 @@ export class HmiService {
         private authService: AuthService,
         private deviceAdapaterService: DeviceAdapterService,
         private http: HttpClient,
-        private toastr: ToastrService) {
+        private toastr: ToastrService,
+        private i3xService: I3xService) {
 
         this.initSocket();
 
@@ -71,6 +77,77 @@ export class HmiService {
         this.authService.currentUser$.subscribe((userProfile: UserProfile) => {
             this.initSocket(userProfile?.token);
         });
+    }
+
+    /**
+     * Subscribe to I3X tags for real-time updates in FUXA views.
+     */
+    private updateI3XSubscriptions(tagsId: string[]) {
+        // Filter out FUXA internal GUIDs (tag_XXXX) to keep only semantic I3X paths
+        const i3xTags = tagsId.filter(id => id && !id.startsWith('tag_') && !id.startsWith('T_'));
+        
+        if (JSON.stringify(this.currentI3xTags.sort()) === JSON.stringify(i3xTags.sort())) {
+            return; // No change
+        }
+
+        this.currentI3xTags = i3xTags;
+        if (this.i3xStreamSub) {
+            this.i3xStreamSub.unsubscribe();
+            this.i3xStreamSub = null;
+        }
+
+        if (this.currentI3xTags.length > 0) {
+            // First get the Last Known Value immediately so the gauge renders without waiting for the first SSE tick
+            this.i3xService.getValues(this.currentI3xTags).subscribe(valuesObj => {
+                for (const elementId in valuesObj) {
+                    if (valuesObj[elementId] && valuesObj[elementId].data && valuesObj[elementId].data.length > 0) {
+                        const vqt = valuesObj[elementId].data[0];
+                        if (vqt && vqt.value !== undefined) {
+                            this.pushI3xVariable(elementId, vqt.value);
+                        }
+                    }
+                }
+            });
+
+            // Extract base elements vs properties (e.g., "pump_01.speed" -> base: "pump_01")
+            const baseElements = Array.from(new Set(this.currentI3xTags.map(tag => tag.split('.')[0])));
+
+            this.i3xStreamSub = this.i3xService.getRealTimeStream(baseElements).subscribe(
+                updates => {
+                    updates.forEach(update => {
+                        for (const elementId in update) {
+                            const vqtData = update[elementId].data ? update[elementId].data[0] : null;
+                            if (vqtData && vqtData.value !== undefined) {
+                                const val = vqtData.value;
+                                
+                                // Propagate the whole object to any gauge bound to the root element
+                                this.pushI3xVariable(elementId, val);
+                                
+                                // Propagate sub-properties (e.g., "pump_01.speed") if they exist
+                                if (typeof val === 'object' && val !== null) {
+                                    Object.keys(val).forEach(key => {
+                                        const subPath = `${elementId}.${key}`;
+                                        if (this.currentI3xTags.includes(subPath)) {
+                                            this.pushI3xVariable(subPath, val[key]);
+                                        }
+                                    });
+                                }
+                            }
+                        }
+                    });
+                }
+            );
+        }
+    }
+
+    private pushI3xVariable(tagId: string, value: any) {
+        if (!this.variables[tagId]) {
+            this.variables[tagId] = new Variable(tagId, null, null);
+        }
+        // FUXA gauges typically expect simple types, but we inject exactly what we get.
+        this.variables[tagId].value = (typeof value === 'object' && value !== null) ? JSON.stringify(value) : value;
+        this.variables[tagId].timestamp = new Date().getTime();
+        this.onVariableChanged.emit(this.variables[tagId]);
     }
 
     /**
@@ -496,6 +573,10 @@ export class HmiService {
         if (!this.variables[signalId]) {
             this.variables[signalId] = new Variable(signalId, null, this.projectService.getDeviceFromTagId(signalId));
         }
+
+        // --- I3X Injection ---
+        // Refresh I3X subscriptions based on currently active views
+        this.updateI3XSubscriptions(this.viewSignalGaugeMap.getAllSignalIds());
     }
 
     /**
@@ -513,6 +594,10 @@ export class HmiService {
             }
         });
         this.viewSignalGaugeMap.remove(domViewId);
+
+        // --- I3X Injection ---
+        this.updateI3XSubscriptions(this.viewSignalGaugeMap.getAllSignalIds());
+
         return result;
     }
 

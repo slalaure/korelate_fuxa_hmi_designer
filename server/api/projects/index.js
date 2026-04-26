@@ -70,6 +70,10 @@ module.exports = {
                 runtime.logger.error("api post project: Unauthorized");
             } else {
                 runtime.project.setProject(req.body).then(function(data) {
+                    // Korelate Export: intercept full project save to export all views
+                    if (req.body && req.body.hmi && req.body.hmi.views) {
+                        req.body.hmi.views.forEach(view => exportKorelateView(view));
+                    }
                     runtime.restart(true).then(function(result) {
                         res.end();
                     });
@@ -98,6 +102,10 @@ module.exports = {
                 runtime.logger.error("api post projectData: Unauthorized");
             } else {
                 runtime.project.setProjectData(req.body.cmd, req.body.data).then(setres => {
+                    // Korelate Export: intercept single view save
+                    if (req.body.cmd === runtime.project.ProjectDataCmdType.SetView) {
+                        exportKorelateView(req.body.data);
+                    }
                     runtime.update(req.body.cmd, req.body.data).then(result => {
                         res.end();
                     });
@@ -269,4 +277,167 @@ module.exports = {
 
         return prjApp;
     }
+}
+
+/**
+ * Korelate Export: Helper function to generate static files for a view.
+ * It creates a .html file with the SVG content and a .js file with a skeleton for bindings.
+ * @param {Object} view FUXA View object containing 'name' and 'svgcontent'
+ */
+function exportKorelateView(view) {
+    try {
+        if (!view || !view.name || !view.svgcontent) {
+            return;
+        }
+
+        // Define the export directory (korelate-export folder at the project root)
+        const exportDir = path.join(runtime.settings.appDir, '..', 'korelate-export');
+        if (!fs.existsSync(exportDir)) {
+            fs.mkdirSync(exportDir, { recursive: true });
+        }
+
+        // Sanitize the view name to create valid filenames
+        const fileName = view.name.replace(/[^a-z0-9]/gi, '_').toLowerCase();
+        const htmlPath = path.join(exportDir, `${fileName}.html`);
+        const jsPath = path.join(exportDir, `${fileName}.js`);
+
+        let initLogic = '';
+        let updateLogic = '';
+
+        // Post-process SVG to inject Korelate data-* attributes
+        let processedSvg = view.svgcontent;
+        if (view.items) {
+            Object.values(view.items).forEach(item => {
+                if (item && item.id && item.property) {
+                    const dataAttributes = [];
+                    
+                    // Main variable binding
+                    if (item.property.variableId) {
+                        const tagPath = resolveTagPath(item.property.variableId);
+                        if (tagPath) {
+                            dataAttributes.push(`data-key="${tagPath}"`);
+                            
+                            // Map FUXA types to Korelate attributes
+                            if (item.type === 'text' || item.type === 'input') {
+                                // Default for text is textContent, so data-attr can be omitted
+                            } else if (item.type === 'rect' || item.type === 'circle' || item.type === 'path') {
+                                dataAttributes.push(`data-attr="fill"`);
+                            }
+                        }
+                    }
+
+                    // Actions (Animations)
+                    if (item.property.actions && item.property.actions.length > 0) {
+                        item.property.actions.forEach(action => {
+                            if (action.variableId) {
+                                const actionTagPath = resolveTagPath(action.variableId);
+                                if (actionTagPath) {
+                                    if (!dataAttributes.some(attr => attr.includes(actionTagPath))) {
+                                        dataAttributes.push(`data-action-key="${actionTagPath}"`);
+                                    }
+                                    const actionType = action.type ? action.type.replace('shapes.action-', '') : 'unknown';
+                                    updateLogic += `
+        if (topic === '${actionTagPath}') {
+            const el_${item.id} = hmiRoot.querySelector('#${item.id}');
+            if (el_${item.id} && msg !== undefined) {
+                // TODO: Implement '${actionType}' animation for element ${item.id} based on msg
+            }
+        }`;
+                                }
+                            }
+                        });
+                    }
+
+                    // Events (Interactions)
+                    if (item.property.events && item.property.events.length > 0) {
+                        item.property.events.forEach(ev => {
+                            if (ev.type && ev.action) {
+                                const eventType = ev.type.replace('shapes.event-', '');
+                                const actionName = ev.action.replace('shapes.event-', '');
+                                const targetTag = ev.actparam ? resolveTagPath(ev.actparam) : '';
+                                
+                                initLogic += `
+        const el_${item.id}_ev = hmiRoot.querySelector('#${item.id}');
+        if (el_${item.id}_ev) {
+            context.addEventListener(el_${item.id}_ev, '${eventType}', (e) => {
+                // TODO: Handle FUXA interaction '${actionName}'
+                ${targetTag ? `// Target tag: ${targetTag}` : ''}
+            });
+        }`;
+                            }
+                        });
+                    }
+
+                    // Inject attributes into the SVG element tag
+                    if (dataAttributes.length > 0) {
+                        const attrString = dataAttributes.join(' ');
+                        const elementRegex = new RegExp('(<[^>]*\\sid=["\']' + item.id + '["\'])([^>]*>)', 'i');
+                        processedSvg = processedSvg.replace(elementRegex, `$1 ${attrString}$2`);
+                    }
+                }
+            });
+        }
+
+        // Generate the .html file containing the processed SVG/HTML
+        fs.writeFileSync(htmlPath, processedSvg);
+
+        // Generate the .js file with the Korelate HMI bindings skeleton (only if it doesn't already exist)
+        const jsContent = `window.registerHmiBindings({
+    initialize: (hmiRoot, context) => {
+        // Initialization logic (DOM events, timers, etc.)${initLogic}
+    },
+    update: (sourceId, topic, payload, hmiRoot, context) => {
+        try {
+            const msg = (typeof payload === 'string') ? JSON.parse(payload) : payload;${updateLogic}
+        } catch (err) {
+            // Silently ignore non-JSON payloads if your logic requires JSON
+        }
+    },
+    reset: (hmiRoot) => {
+        // Reset logic when view is unloaded
+    }
+});\n`;
+
+        if (!fs.existsSync(jsPath)) {
+            fs.writeFileSync(jsPath, jsContent);
+        }
+    } catch (err) {
+        if (runtime && runtime.logger) {
+            runtime.logger.error(`Korelate Export Error for view "${view ? view.name : 'unknown'}": ${err}`);
+        } else {
+            console.error('Korelate Export Error:', err);
+        }
+    }
+}
+
+/**
+ * Korelate Export: Resolves a FUXA variableId (GUID) into a semantic path (DeviceName/TagName).
+ * If the variableId is already an I3X semantic path (e.g. from the UNS Browser), it passes it through.
+ * @param {string} variableId The GUID of the tag in FUXA, or an I3X semantic path
+ * @returns {string|null} The resolved path or null if not found
+ */
+function resolveTagPath(variableId) {
+    if (!variableId) return null;
+    
+    // FUXA internal tag GUIDs usually look like "tag_XXXX"
+    if (!variableId.startsWith('tag_') && !variableId.startsWith('T_')) {
+        // It's likely already a semantic I3X path (e.g. "l1_coating_head.pump_hz")
+        return variableId;
+    }
+
+    try {
+        const devices = runtime.project.getDevices();
+        if (!devices) return null;
+
+        for (const deviceId in devices) {
+            const device = devices[deviceId];
+            if (device && device.tags && device.tags[variableId]) {
+                const tag = device.tags[variableId];
+                return `${device.name}/${tag.name}`;
+            }
+        }
+    } catch (err) {
+        // Silent fail
+    }
+    return null;
 }

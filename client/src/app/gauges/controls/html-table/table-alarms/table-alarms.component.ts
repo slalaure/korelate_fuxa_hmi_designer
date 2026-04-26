@@ -4,6 +4,7 @@ import { MAT_DIALOG_DATA as MAT_DIALOG_DATA, MatDialog as MatDialog, MatDialogRe
 import { AlarmColumns, AlarmColumnsType, AlarmHistoryColumns, AlarmHistoryColumnsType, AlarmsFilter, AlarmsType } from '../../../../_models/alarm';
 import { ProjectService } from '../../../../_services/project.service';
 import { DeviceTagSelectionComponent, DeviceTagSelectionData } from '../../../../device/device-tag-selection/device-tag-selection.component';
+import { UnsTagSelectionComponent } from '../../../../editor/uns-tag-selection/uns-tag-selection.component';
 import { DeviceType } from '../../../../_models/device';
 
 @Component({
@@ -73,7 +74,7 @@ export class TableAlarmsComponent {
     }
 
     onAddTags() {
-        let dialogRef = this.dialog.open(DeviceTagSelectionComponent, {
+        let dialogRef = this.dialog.open(UnsTagSelectionComponent, {
             disableClose: true,
             position: { top: '60px' },
             data: <DeviceTagSelectionData> {

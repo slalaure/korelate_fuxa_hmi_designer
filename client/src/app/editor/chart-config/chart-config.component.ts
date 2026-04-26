@@ -12,6 +12,7 @@ import { Chart, ChartLine } from '../../_models/chart';
 import { ConfirmDialogComponent } from '../../gui-helpers/confirm-dialog/confirm-dialog.component';
 import { EditNameComponent } from '../../gui-helpers/edit-name/edit-name.component';
 import { DeviceTagSelectionComponent, DeviceTagSelectionData } from '../../device/device-tag-selection/device-tag-selection.component';
+import { UnsTagSelectionComponent } from '../uns-tag-selection/uns-tag-selection.component';
 import { ChartLineAndInterpolationsType, ChartLinePropertyComponent } from './chart-line-property/chart-line-property.component';
 import { EditPlaceholderComponent } from '../../gui-helpers/edit-placeholder/edit-placeholder.component';
 
@@ -119,7 +120,7 @@ export class ChartConfigComponent implements OnInit {
     }
 
     onAddChartLine(chart: Chart) {
-        let dialogRef = this.dialog.open(DeviceTagSelectionComponent, {
+        let dialogRef = this.dialog.open(UnsTagSelectionComponent, {
             disableClose: true,
             position: { top: '60px' },
             data: <DeviceTagSelectionData> {

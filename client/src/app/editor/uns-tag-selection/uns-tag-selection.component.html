@@ -1,0 +1,48 @@
+<div class="container">
+    <h1 mat-dialog-title class="dialog-title" mat-dialog-draggable>
+        UNS Semantic Browser
+    </h1>
+    <mat-icon (click)="onNoClick()" class="dialog-close-btn">clear</mat-icon>
+    <div mat-dialog-content class="content">
+        <div class="tree-container">
+            <mat-tree [dataSource]="dataSource" [treeControl]="treeControl" class="uns-tree">
+                <!-- Nœud sans enfants (attribut final / leaf) -->
+                <mat-tree-node *matTreeNodeDef="let node" matTreeNodeToggle>
+                    <div class="mat-tree-node-content" (click)="onSelect(node)" [class.selected]="node.id === data.variableId">
+                        <mat-icon class="mat-icon-rtl-mirror type-icon">tag</mat-icon>
+                        <span class="node-name">{{node.name}}</span>
+                        <span class="node-type" *ngIf="node.typeId">({{node.typeId}})</span>
+                        <span class="node-value" *ngIf="node.value !== undefined">
+                            {{node.value}} <small>{{node.unit}}</small>
+                        </span>
+                    </div>
+                </mat-tree-node>
+
+                <!-- Nœud avec enfants (dossier / concept) -->
+                <mat-nested-tree-node *matTreeNodeDef="let node; when: hasChild">
+                    <div class="mat-tree-node-content" (click)="treeControl.toggle(node)">
+                        <button mat-icon-button matTreeNodeToggle [attr.aria-label]="'Toggle ' + node.name" (click)="$event.stopPropagation()">
+                            <mat-icon class="mat-icon-rtl-mirror">
+                                {{treeControl.isExpanded(node) ? 'expand_more' : 'chevron_right'}}
+                            </mat-icon>
+                        </button>
+                        <mat-icon class="type-icon">{{ node.isComposition ? 'view_in_ar' : 'folder' }}</mat-icon>
+                        <span class="node-name">{{node.name}}</span>
+                    </div>
+                    <div [class.uns-tree-invisible]="!treeControl.isExpanded(node)" role="group" class="tree-nested-node-children">
+                        <ng-container matTreeNodeOutlet></ng-container>
+                    </div>
+                </mat-nested-tree-node>
+            </mat-tree>
+        </div>
+        
+        <div class="selection-details" *ngIf="data.variableId">
+            <strong>Selected:</strong> {{ data.variableId }}
+        </div>
+    </div>
+    
+    <div mat-dialog-actions class="dialog-action">
+        <button mat-raised-button (click)="onNoClick()">{{'dlg.cancel' | translate}}</button>
+        <button mat-raised-button color="primary" (click)="onOkClick()" [disabled]="!data.variableId">{{'dlg.ok' | translate}}</button>
+    </div>
+</div>

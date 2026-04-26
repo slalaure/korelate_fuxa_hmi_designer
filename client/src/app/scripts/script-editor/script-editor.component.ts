@@ -13,6 +13,7 @@ import { Utils } from '../../_helpers/utils';
 import { ScriptParamType, Script, ScriptTest, SCRIPT_PREFIX, SystemFunctions, SystemFunction, ScriptParam, ScriptConsoleMessage, TemplatesCode, ScriptMode, ScriptParamFilterType } from '../../_models/script';
 import { DevicesUtils, DeviceType } from '../../_models/device';
 import { DeviceTagSelectionComponent, DeviceTagSelectionData } from '../../device/device-tag-selection/device-tag-selection.component';
+import { UnsTagSelectionComponent } from '../../editor/uns-tag-selection/uns-tag-selection.component';
 import { ScriptEditorParamComponent } from './script-editor-param/script-editor-param.component';
 
 @Component({
@@ -188,7 +189,7 @@ export class ScriptEditorComponent implements OnInit, OnDestroy {
 
     onAddSystemFunctionTag(sysfnc: SystemFunction) {
         const withMultTagsParam = sysfnc.params?.find(p => p === 'array');
-        let dialogRef = this.dialog.open(DeviceTagSelectionComponent, {
+        let dialogRef = this.dialog.open(UnsTagSelectionComponent, {
             disableClose: true,
             position: { top: '60px' },
             data: <DeviceTagSelectionData> {
@@ -218,7 +219,7 @@ export class ScriptEditorComponent implements OnInit, OnDestroy {
     }
 
     onSetTestTagParam(param: ScriptParam) {
-        let dialogRef = this.dialog.open(DeviceTagSelectionComponent, {
+        let dialogRef = this.dialog.open(UnsTagSelectionComponent, {
             disableClose: true,
             position: { top: '60px' },
             data: <DeviceTagSelectionData> {

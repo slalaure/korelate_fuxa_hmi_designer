@@ -7,6 +7,7 @@ import { DeviceType, Tag } from '../../../_models/device';
 import { ReportDateRangeType, ReportFunctionType, ReportIntervalType, ReportItemTable, ReportTableColumn, ReportTableColumnType } from '../../../_models/report';
 import { ProjectService } from '../../../_services/project.service';
 import { DeviceTagSelectionComponent, DeviceTagSelectionData } from '../../../device/device-tag-selection/device-tag-selection.component';
+import { UnsTagSelectionComponent } from '../../../editor/uns-tag-selection/uns-tag-selection.component';
 
 @Component({
     selector: 'app-report-item-table',
@@ -52,7 +53,7 @@ export class ReportItemTableComponent implements OnInit {
     }
 
     onAddItem(index: number) {
-        let dialogRef = this.dialog.open(DeviceTagSelectionComponent, {
+        let dialogRef = this.dialog.open(UnsTagSelectionComponent, {
             disableClose: true,
             position: { top: '60px' },
             data: <DeviceTagSelectionData> {

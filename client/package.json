@@ -10,8 +10,8 @@
   },
   "scripts": {
     "ng": "ng",
-    "start": "ng serve",
-    "start:lan": "ng serve --host 0.0.0.0 --disable-host-check",
+    "start": "ng serve --proxy-config proxy.conf.json",
+    "start:lan": "ng serve --host 0.0.0.0 --disable-host-check --proxy-config proxy.conf.json",
     "demo": "ng serve -c demo",
     "client": "ng serve -c client",
     "build": "ng build",

@@ -236,6 +236,7 @@ import { ApiKeyPropertyComponent } from './apikeys/api-key-property/api-key-prop
 import { TagPropertyEditRedisComponent } from './device/tag-property/tag-property-edit-redis/tag-property-edit-redis.component';
 import { TagPropertyRedisScanComponent } from './device/tag-property/tag-property-edit-redis/tag-property-redis-scan/tag-property-redis-scan.component';
 import { OnboardingWizardComponent } from './editor/onboarding-wizard/onboarding-wizard.component';
+import { UnsTagSelectionComponent } from './editor/uns-tag-selection/uns-tag-selection.component';
 
 export function createTranslateLoader(http: HttpClient) {
     return new TranslateHttpLoader(http, './assets/i18n/', '.json');
@@ -257,6 +258,7 @@ export const myCustomTooltipDefaults: MatTooltipDefaultOptions = {
         LabComponent,
         DeviceComponent,
         DeviceTagSelectionComponent,
+        UnsTagSelectionComponent,
         TagPropertyEditS7Component,
         TagPropertyEditServerComponent,
         TagPropertyEditModbusComponent,

@@ -32,12 +32,15 @@ import { MatToolbarModule } from '@angular/material/toolbar';
 import { MatTooltipModule as MatTooltipModule } from '@angular/material/tooltip';
 import { MatStepperModule } from '@angular/material/stepper';
 import { MatMomentDateModule } from '@angular/material-moment-adapter';
+import { MatTreeModule } from '@angular/material/tree';
+import { CdkTreeModule } from '@angular/cdk/tree';
 
 import { CdkTableModule } from '@angular/cdk/table';
 
 @NgModule({
     imports: [
         CdkTableModule,
+        CdkTreeModule,
         MatAutocompleteModule,
         MatButtonModule,
         MatButtonToggleModule,
@@ -69,9 +72,11 @@ import { CdkTableModule } from '@angular/cdk/table';
         MatTabsModule,
         MatToolbarModule,
         MatTooltipModule,
+        MatTreeModule,
     ],
     exports: [
         CdkTableModule,
+        CdkTreeModule,
         MatAutocompleteModule,
         MatButtonModule,
         MatButtonToggleModule,
@@ -103,6 +108,7 @@ import { CdkTableModule } from '@angular/cdk/table';
         MatTabsModule,
         MatToolbarModule,
         MatTooltipModule,
+        MatTreeModule,
     ],
     providers: [{
         provide: MatPaginatorIntl,

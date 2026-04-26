@@ -7,6 +7,7 @@ import { BitmaskComponent } from '../../../gui-helpers/bitmask/bitmask.component
 import { Observable, map, startWith } from 'rxjs';
 import { UntypedFormControl } from '@angular/forms';
 import { DeviceTagSelectionComponent, DeviceTagSelectionData } from '../../../device/device-tag-selection/device-tag-selection.component';
+import { UnsTagSelectionComponent } from '../../../editor/uns-tag-selection/uns-tag-selection.component';
 import { ProjectService } from '../../../_services/project.service';
 
 interface Variable {
@@ -125,12 +126,20 @@ export class FlexVariableComponent implements OnInit {
     }
 
     private _setSelectedTag() {
-        const tag = this._getDeviceTag(this.variableId);
+        let tag = this._getDeviceTag(this.variableId);
+        if (!tag && this.variableId) {
+            // Virtual tag for I3X semantic paths
+            tag = <DeviceTagOption> {
+                id: this.variableId,
+                name: this.variableId,
+                device: 'I3X'
+            };
+        }
         this.tagFilter.patchValue(tag);
     }
 
     displayFn(deviceTag: DeviceTagOption): string {
-        return deviceTag?.name;
+        return deviceTag?.name || deviceTag?.id || '';
     }
 
     onDeviceTagSelected(deviceTag: DeviceTagOption) {
@@ -143,7 +152,7 @@ export class FlexVariableComponent implements OnInit {
         if (device) {
             return device.name;
         }
-        return '';
+        return this.variableId ? 'I3X' : '';
     }
 
     getVariableName() {
@@ -158,7 +167,7 @@ export class FlexVariableComponent implements OnInit {
             }
             return result;
         }
-        return '';
+        return this.variableId || '';
     }
 
     getVariableMask(): string {
@@ -181,7 +190,8 @@ export class FlexVariableComponent implements OnInit {
                 this.value.variableId = tag.id;
                 this.value.variableRaw = tag;
             } else {
-                this.value.variableId = null;
+                // If not a FUXA tag, it's a raw I3X path
+                this.value.variableId = this.variableId;
                 this.value.variableRaw = null;
             }
         }
@@ -194,7 +204,7 @@ export class FlexVariableComponent implements OnInit {
     }
 
     onBindTag() {
-        let dialogRef = this.dialog.open(DeviceTagSelectionComponent, {
+        let dialogRef = this.dialog.open(UnsTagSelectionComponent, {
             disableClose: true,
             position: { top: '60px' },
             data: <DeviceTagSelectionData> {
